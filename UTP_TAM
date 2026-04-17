@@ -1,0 +1,110 @@
+package com.example.utp_tam_2457051010
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.annotation.DrawableRes
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import com.example.utp_tam_2457051010.ui.theme.UTP_TAM_2457051010Theme
+
+data class Trash(
+    val nama: String,
+    val kategori: String,
+    val deskripsi: String,
+    @DrawableRes val imageRes: Int
+)
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContent {
+            UTP_TAM_2457051010Theme {
+                JenisSampahScreen()
+            }
+        }
+    }
+}
+
+@Composable
+fun JenisSampahScreen() {
+    val dummyTrash = kotlin.collections.listOf(
+        Trash("Baterai", "Organik", "Sampah Daur Ulang", R.drawable.baterai),
+        Trash("Botol Minum", "Anorganik", "Tidak Daur Ulang", R.drawable.botol_minuman),
+        Trash("Kaleng", "Organik", "Gabisa", R.drawable.kaleng),
+        Trash("Kulit Pisang", "Organik", "Daur Ulang", R.drawable.kulit_pisang),
+        Trash("Medis", "Organik", "Gatau", R.drawable.sampah_medis),
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp)
+    ) {
+        dummyTrash.forEach { trash ->
+            DetailScreen(trash = trash)
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+fun DetailScreen(trash: Trash) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Image(
+            painter = painterResource(id = trash.imageRes),
+            contentDescription = trash.nama,
+            modifier = Modifier.fillMaxWidth().height(200.dp),
+            contentScale = ContentScale.Crop
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = trash.nama,
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "Kategori: ${trash.kategori}",
+            style = MaterialTheme.typography.bodyLarge
+        )
+
+        Text(
+            text = "Deskripsi: ${trash.deskripsi}",
+            style = MaterialTheme.typography.bodyMedium
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun JenisSampahPreview() {
+    UTP_TAM_2457051010Theme {
+        JenisSampahScreen()
+    }
+}
