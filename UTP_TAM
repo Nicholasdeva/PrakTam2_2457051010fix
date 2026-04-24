@@ -96,7 +96,7 @@ fun TrashRowItem(trash: Trash, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() }, // Menggantikan fungsi onClick bawaan Card agar tidak butuh @OptIn
+            .clickable { onClick() }, 
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
