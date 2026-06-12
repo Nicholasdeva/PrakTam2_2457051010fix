@@ -1,8 +1,8 @@
-package com.example.projecttam_2457051010.model
+package com.example.projecttam_2457051010.data.model
 
 import com.google.gson.annotations.SerializedName
 
-data class Food(
+data class Layanan(
     @SerializedName("nama")
     val nama: String,
 
@@ -14,9 +14,4 @@ data class Food(
 
     @SerializedName("image_url")
     val imageUrl: String
-
-//    @SerializedName("image_url")
-//    val imageUrl: String
 )
-
-

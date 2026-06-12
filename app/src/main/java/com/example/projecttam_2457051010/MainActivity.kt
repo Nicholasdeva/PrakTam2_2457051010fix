@@ -28,9 +28,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
-import com.example.projecttam_2457051010.model.Food
-import com.example.projecttam_2457051010.network.RetrofitClient
+import com.example.projecttam_2457051010.data.model.Layanan
+import com.example.projecttam_2457051010.data.api.RetrofitClient
+import com.example.projecttam_2457051010.data.repository.LayananRepository
 import com.example.projecttam_2457051010.ui.theme.TAMPraktikumTheme
+import com.example.projecttam_2457051010.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -49,28 +51,28 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun AppNavigation(navController: NavHostController) {
-    var foods by remember { mutableStateOf<List<Food>>(emptyList()) }
+    var layananList by remember { mutableStateOf<List<Layanan>>(emptyList()) }
 
     NavHost(
         navController = navController,
         startDestination = "home"
     ) {
         composable("home") {
-            DaftarMakananScreen(navController) { fetchedFoods ->
-                foods = fetchedFoods
+            DaftarLayananScreen(navController) { fetchedLayanan ->
+                layananList = fetchedLayanan
             }
         }
         composable("detail/{nama}") { backStackEntry ->
             val nama = backStackEntry.arguments?.getString("nama")
-            val food = foods.find { it.nama == nama }
+            val layanan = layananList.find { it.nama == nama }
 
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(16.dp)
             ) {
-                if (food != null) {
-                    DetailScreen(food = food, navController = navController, isFullScreen = true)
+                if (layanan != null) {
+                    DetailScreen(layanan = layanan, navController = navController, isFullScreen = true)
                 } else {
                     Column(
                         modifier = Modifier.fillMaxSize(),
@@ -78,7 +80,7 @@ fun AppNavigation(navController: NavHostController) {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "Data Makanan Tidak Ditemukan",
+                            text = "Data Layanan Tidak Ditemukan",
                             style = MaterialTheme.typography.titleMedium,
                             color = Color.Red
                         )
@@ -94,27 +96,31 @@ fun AppNavigation(navController: NavHostController) {
 }
 
 @Composable
-fun DaftarMakananScreen(
+fun DaftarLayananScreen(
     navController: NavHostController,
-    onFoodsLoaded: (List<Food>) -> Unit = {}
+    onLayananLoaded: (List<Layanan>) -> Unit = {}
 ) {
-    var foods by remember { mutableStateOf<List<Food>>(emptyList()) }
+    var layananList by remember { mutableStateOf<List<Layanan>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var isError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
+    var searchQuery by remember { mutableStateOf("") }
+
+    val repository = remember { LayananRepository() }
 
     LaunchedEffect(Unit) {
-        try {
-            val response = RetrofitClient.instance.getFoods()
-            foods = response
-            onFoodsLoaded(foods)
-            isLoading = false
-            isError = false
-        } catch (e: Exception) {
-            Log.e("API_ERROR", "Gagal mengambil data", e)
-            errorMessage = e.localizedMessage ?: "Terjadi kesalahan"
-            isLoading = false
-            isError = true
+        isLoading = true
+        layananList = repository.getLayanan()
+        onLayananLoaded(layananList)
+        isLoading = false
+        isError = layananList.isEmpty()
+    }
+
+    val filteredLayanan = if (searchQuery.isEmpty()) {
+        layananList
+    } else {
+        layananList.filter {
+            it.nama.contains(searchQuery, ignoreCase = true)
         }
     }
 
@@ -125,7 +131,7 @@ fun DaftarMakananScreen(
         ) {
             CircularProgressIndicator()
         }
-    } else if (isError || foods.isEmpty()) {
+    } else if (isError || layananList.isEmpty()) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -157,22 +163,38 @@ fun DaftarMakananScreen(
                 .fillMaxSize()
                 .padding(16.dp)
                 .statusBarsPadding()
+                .navigationBarsPadding()
         ) {
             Text(
                 text = "Daftar Layanan",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 16.dp)
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                label = { Text("Cari Layanan...") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                )
             )
 
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(bottom = 24.dp)
             ) {
-                items(foods) { food ->
-                    FoodRowItem(food = food, navController = navController)
+                items(filteredLayanan) { layanan ->
+                    LayananRowItem(layanan = layanan, navController = navController)
                 }
             }
         }
@@ -180,12 +202,12 @@ fun DaftarMakananScreen(
 }
 
 @Composable
-fun FoodRowItem(food: Food, navController: NavHostController) {
+fun LayananRowItem(layanan: Layanan, navController: NavHostController) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
-                navController.navigate("detail/${food.nama}")
+                navController.navigate("detail/${layanan.nama}")
             },
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
@@ -198,8 +220,8 @@ fun FoodRowItem(food: Food, navController: NavHostController) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             AsyncImage(
-                model = food.imageUrl,
-                contentDescription = food.nama,
+                model = layanan.imageUrl,
+                contentDescription = layanan.nama,
                 placeholder = painterResource(id = R.drawable.rendang),
                 error = painterResource(id = R.drawable.rendang),
                 modifier = Modifier
@@ -210,13 +232,13 @@ fun FoodRowItem(food: Food, navController: NavHostController) {
             Spacer(modifier = Modifier.width(16.dp))
             Column {
                 Text(
-                    text = food.nama,
+                    text = layanan.nama,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Rp ${food.harga}",
+                    text = "Rp ${layanan.harga}",
                     color = MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.bodyMedium
                 )
@@ -227,7 +249,7 @@ fun FoodRowItem(food: Food, navController: NavHostController) {
 
 @Composable
 fun DetailScreen(
-    food: Food,
+    layanan: Layanan,
     navController: NavHostController,
     isFullScreen: Boolean = false
 ) {
@@ -235,8 +257,60 @@ fun DetailScreen(
     var isLoading by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    var tampilkanDialogBayar by remember { mutableStateOf(false) }
+    val listMetode = listOf("Transfer Bank", "E-Wallet (Dana/OVO)", "Tunai / COD")
+    var metodeTerpilih by remember { mutableStateOf(listMetode[0]) }
 
-    Box(modifier = Modifier.fillMaxWidth()) {
+    if (tampilkanDialogBayar) {
+        AlertDialog(
+            onDismissRequest = { tampilkanDialogBayar = false },
+            title = { Text("Pilih Metode Pembayaran") },
+            text = {
+                Column {
+                    listMetode.forEach { metode ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { metodeTerpilih = metode }
+                                .padding(vertical = 4.dp)
+                        ) {
+                            RadioButton(
+                                selected = (metode == metodeTerpilih),
+                                onClick = { metodeTerpilih = metode }
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(text = metode)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        tampilkanDialogBayar = false
+                        coroutineScope.launch {
+                            isLoading = true
+                            delay(2000) // Efek seolah-olah memproses pembayaran ke server
+                            snackbarHostState.showSnackbar(
+                                "Pembayaran ${layanan.nama} sebesar Rp ${layanan.harga} via $metodeTerpilih Berhasil!"
+                            )
+                            isLoading = false
+                        }
+                    }
+                ) {
+                    Text("Konfirmasi")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { tampilkanDialogBayar = false }) {
+                    Text("Batal")
+                }
+            }
+        )
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -252,8 +326,8 @@ fun DetailScreen(
             ) {
                 Box {
                     AsyncImage(
-                        model = food.imageUrl,
-                        contentDescription = food.nama,
+                        model = layanan.imageUrl,
+                        contentDescription = layanan.nama,
                         placeholder = painterResource(id = R.drawable.rendang),
                         error = painterResource(id = R.drawable.rendang),
                         modifier = Modifier
@@ -277,18 +351,18 @@ fun DetailScreen(
                 }
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = food.nama,
+                    text = layanan.nama,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = food.deskripsi,
+                    text = layanan.deskripsi,
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Harga: Rp ${food.harga}",
+                    text = "Harga: Rp ${layanan.harga}",
                     color = MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.bodyMedium
                 )
@@ -297,14 +371,7 @@ fun DetailScreen(
                 if (isFullScreen) {
                     Button(
                         onClick = {
-                            coroutineScope.launch {
-                                isLoading = true
-                                delay(2000)
-                                snackbarHostState.showSnackbar(
-                                    "Pesanan ${food.nama} berhasil diproses!"
-                                )
-                                isLoading = false
-                            }
+                            tampilkanDialogBayar = true
                         },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !isLoading
@@ -318,7 +385,7 @@ fun DetailScreen(
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Memproses...")
                         } else {
-                            Text("Pesan Sekarang")
+                            Text("Pesan & Bayar Sekarang")
                         }
                     }
                     Spacer(modifier = Modifier.height(8.dp))
@@ -332,7 +399,7 @@ fun DetailScreen(
                 } else {
                     Button(
                         onClick = {
-                            navController.navigate("detail/${food.nama}")
+                            navController.navigate("detail/${layanan.nama}")
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {

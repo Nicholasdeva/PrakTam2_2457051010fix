@@ -1,4 +1,4 @@
-package com.example.projecttam_2457051010.network
+package com.example.projecttam_2457051010.data.api
 
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
